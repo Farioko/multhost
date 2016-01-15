@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# Copyright 2016 Fabian Bakkum
+#
+# This file is part of multhost.
+# 
+# multhost is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# multhost is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with multhost. If not, see <http://www.gnu.org/licenses/>.
+
+if [[ $EUID -ne 0 ]]; then
+        echo "Kör detta skript som root!"
+        exit
+fi
+
+read -r -p "Användarnamn: " user
+read -r -p "Är du säker på att du vill radera användaren [Ja/nej]? " confirmation
+
+if [[ ${confirmation,,} != "ja" ]]; then
+	if [[ ${confirmation,,} != "nej" ]]; then
+		echo "Detta förstår jag inte. Vänligen försok igen. Giltiga svar är [Ja/nej]"
+	fi
+
+	exit
+fi
+
+source multhost.conf
+
+mysql --user=root --password="$mysqlpassword" -e "STATUS;" > /dev/null 2>&1
+if [[ "$?" -ne 0 ]]; then
+        echo "Error: Anslutningen till MySQL misslyckades!"
+        exit
+fi
+
+id -u $user > /dev/null 2>&1
+if [[ "$?" -ne 0 ]]; then
+        echo "Error: Användaren finns inte!"
+        exit
+fi
+
+mysql --user=root --password="$mysqlpassword" -e "DROP DATABASE IF EXISTS $user;" > /dev/null 2>&1
+mysql --user=root --password="$mysqlpassword" -e "DROP USER '$user'@'localhost';" > /dev/null 2>&1
+mysqladmin --user=root --password="$mysqlpassword" reload > /dev/null 2>&1
+
+userdel "$user" > /dev/null 2>&1
+rm -R "$basedir/$user"
+groupdel "$user" > /dev/null 2>&1
+
+a2dissite "$user".$domain > /dev/null 2>&1
+service apache2 reload > /dev/null 2>&1
+rm "/etc/apache2/sites-available/$user.$domain.conf"

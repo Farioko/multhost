@@ -1,0 +1,83 @@
+#!/bin/bash
+
+# Copyright 2016 Fabian Bakkum
+#
+# This file is part of multhost.
+# 
+# multhost is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# multhost is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with multhost. If not, see <http://www.gnu.org/licenses/>.
+
+if [[ $EUID -ne 0 ]]; then
+	echo "Kör detta skript som root!"
+	exit
+fi
+
+read -r -p "Användarnamn: " user
+password=$(makepasswd --char=8)
+
+source multhost.conf
+
+mysql --user=root --password="$mysqlpassword" -e "STATUS;" > /dev/null 2>&1
+if [[ "$?" -ne 0 ]]; then
+        echo "Error: Anslutningen till MySQL misslyckades!"
+        exit
+fi
+
+id -u $user > /dev/null 2>&1
+if [[ "$?" -eq 0 ]]; then
+	echo "Error: Användaren finns redan!"
+	exit
+fi
+
+echo "Skapar användaren...."
+echo "Användarnamn: $user"
+echo "Lösenord: $password"
+
+mysql --user=root --password="$mysqlpassword" -e "CREATE DATABASE $user DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;" > /dev/null 2>&1
+mysql --user=root --password="$mysqlpassword" -e "CREATE USER '$user'@'localhost' IDENTIFIED BY '$password';" > /dev/null 2>&1
+mysql --user=root --password="$mysqlpassword" -e "GRANT ALL PRIVILEGES ON \`$user\`.* TO '$user'@'localhost';" > /dev/null 2>&1
+mysqladmin --user=root --password="$mysqlpassword" reload > /dev/null 2>&1
+
+groupadd "$user"
+useradd "$user" -s /usr/sbin/nologin -d "$basedir/$user" -M -g "$user" -G elever
+echo "$user:$password" | chpasswd
+
+mkdir "$basedir/$user"
+chown root "$basedir/$user"
+chgrp root "$basedir/$user"
+chmod 755 "$basedir/$user"
+
+mkdir "$basedir/$user/www"
+chown "$user" "$basedir/$user/www"
+chgrp "$user" "$basedir/$user/www"
+chmod 2770 "$basedir/$user/www"
+
+echo "<VirtualHost *:80>
+        ServerAdmin $serveradmin
+        DocumentRoot $basedir/$user/www
+        ServerName $user.$domain
+
+	<IfModule mpm_itk_module>
+		AssignUserId $user $user
+	</IfModule>
+
+	<Directory $basedir/$user/www>
+		php_admin_value open_basedir $basedir/$user/www
+	</Directory>
+
+        ErrorLog \${APACHE_LOG_DIR}/error.log
+        CustomLog \${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>" > /etc/apache2/sites-available/"$user".$domain.conf
+
+a2ensite "$user".$domain > /dev/null 2>&1
+service apache2 reload > /dev/null 2>&1
