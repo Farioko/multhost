@@ -6,9 +6,11 @@
 
 `chmod 700 multhost/radera_elev multhost/skapa_elev`
 
-`ln -s /root/multhost/skapa_elev /sbin/skapa_elev`
+`vi .bashrc`
 
-`ln -s /root/multhost/radera_elev /sbin/radera_elev`
+Lägg till följande rad längst ner i filen.
+
+`export PATH="$PATH:/root/multhost"`
 
 # Configuration
 
