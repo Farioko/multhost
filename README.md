@@ -1,20 +1,18 @@
 # Installation 
 
-`sudo -i`
+`cd /opt`
 
-`git pull https://github.com/Farioko/multhost.git`
+`sudo git pull https://github.com/Farioko/multhost.git`
 
-`chmod 700 multhost/radera_elev multhost/skapa_elev`
+`sudo chmod 700 multhost/radera_elev multhost/skapa_elev`
 
-`vi .bashrc`
+`sudo visudo`
 
-Lägg till följande rad längst ner i filen.
-
-`export PATH="$PATH:/root/multhost"`
+Konkatenera *:/opt/multhost* med str�ngen *secure_path*
 
 # Configuration
 
-`vi multhost/multhost.conf`
+`sudo vi multhost/multhost.conf`
 
 ```bash
 mysqlpassword="password"
@@ -23,4 +21,4 @@ domain="example.org"
 serveradmin="user@example.org"
 ```
 
-`chmod 600 multhost/multhost.conf`
+`sudo chmod 600 multhost/multhost.conf`
