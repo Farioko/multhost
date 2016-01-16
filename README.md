@@ -8,7 +8,7 @@
 
 `sudo visudo`
 
-Konkatenera *:/opt/multhost* med str√ngen *secure_path*
+Konkatenera *:/opt/multhost* med str√§ngen *secure_path*
 
 # Configuration
 
