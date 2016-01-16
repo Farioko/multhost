@@ -10,7 +10,7 @@
 
 Konkatenera *:/opt/multhost* med strängen *secure_path*
 
-# Configuration
+# Konfiguration
 
 `sudo vi multhost/multhost.conf`
 
