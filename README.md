@@ -2,7 +2,7 @@
 
 `cd /opt`
 
-`sudo git pull https://github.com/Farioko/multhost.git`
+`sudo git clone https://github.com/Farioko/multhost.git`
 
 `sudo chmod 700 multhost/radera_elev multhost/skapa_elev`
 
